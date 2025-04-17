@@ -58,52 +58,58 @@ def create_output_script(pubkey):
     return bytes.fromhex(script_len + pubkey + OP_CHECKSIG)
 
 def create_transaction(input_script, output_script, options):
-    transaction = Struct("transaction",
-        Bytes("version", 4),
-        Byte("num_inputs"),
-        StaticField("prev_output", 32),
-        UBInt32('prev_out_idx'),
-        Byte('input_script_len'),
-        Bytes('input_script', len(input_script)),
-        UBInt32('sequence'),
-        Byte('num_outputs'),
-        Bytes('out_value', 8),
-        Byte('output_script_len'),
-        Bytes('output_script',  0x43),
-        UBInt32('locktime'))
+    transaction = Struct(
+        "version" / Bytes(4),
+        "num_inputs" / Byte,
+        "prev_output" / Bytes(32),
+        "prev_out_idx" / Int32ul,
+        "input_script_len" / Byte,
+        "input_script" / Bytes(len(input_script)),
+        "sequence" / Int32ul,
+        "num_outputs" / Byte,
+        "out_value" / Bytes(8),
+        "output_script_len" / Byte,
+        "output_script" / Bytes(len(output_script)),
+        "locktime" / Int32ul
+    )
 
-    tx = transaction.parse(b'\x00' * (127 + len(input_script)))
-    tx.version           = struct.pack('<I', 1)
-    tx.num_inputs        = 1
-    tx.prev_output       = struct.pack('<qqqq', 0, 0, 0, 0)
-    tx.prev_out_idx      = 0xFFFFFFFF
-    tx.input_script_len  = len(input_script)
-    tx.input_script      = input_script
-    tx.sequence          = 0xFFFFFFFF
-    tx.num_outputs       = 1
-    tx.out_value         = struct.pack('<q', options.value)
-    tx.output_script_len = 0x43
-    tx.output_script     = output_script
-    tx.locktime          = 0 
-    return transaction.build(tx)
+    data = {
+        "version": struct.pack('<I', 1),
+        "num_inputs": 1,
+        "prev_output": bytes(32),
+        "prev_out_idx": 0xFFFFFFFF,
+        "input_script_len": len(input_script),
+        "input_script": input_script,
+        "sequence": 0xFFFFFFFF,
+        "num_outputs": 1,
+        "out_value": struct.pack('<Q', options.value),
+        "output_script_len": len(output_script),
+        "output_script": output_script,
+        "locktime": 0
+    }
+
+    return transaction.build(data)
 
 def create_block_header(hash_merkle_root, time_val, bits, nonce):
-    block_header = Struct("block_header",
-        Bytes("version", 4),
-        Bytes("hash_prev_block", 32),
-        Bytes("hash_merkle_root", 32),
-        Bytes("time", 4),
-        Bytes("bits", 4),
-        Bytes("nonce", 4))
+    block_header = Struct(
+        "version" / Bytes(4),
+        "hash_prev_block" / Bytes(32),
+        "hash_merkle_root" / Bytes(32),
+        "time" / Bytes(4),
+        "bits" / Bytes(4),
+        "nonce" / Bytes(4)
+    )
 
-    genesisblock = block_header.parse(b'\x00'*80)
-    genesisblock.version          = struct.pack('<I', 1)
-    genesisblock.hash_prev_block  = struct.pack('<qqqq', 0, 0, 0, 0)
-    genesisblock.hash_merkle_root = hash_merkle_root
-    genesisblock.time             = struct.pack('<I', time_val)
-    genesisblock.bits             = struct.pack('<I', bits)
-    genesisblock.nonce            = struct.pack('<I', nonce)
-    return block_header.build(genesisblock)
+    data = {
+        "version": struct.pack('<I', 1),
+        "hash_prev_block": bytes(32),
+        "hash_merkle_root": hash_merkle_root,
+        "time": struct.pack('<I', time_val),
+        "bits": struct.pack('<I', bits),
+        "nonce": struct.pack('<I', nonce)
+    }
+
+    return block_header.build(data)
 
 def generate_hash(data_block, algorithm, start_nonce, bits):
     print('Searching for genesis hash..')
